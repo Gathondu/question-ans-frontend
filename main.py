@@ -29,7 +29,8 @@ def load_document(file: str):
 
 def create_chunks(data, chunk_size=256, chunk_overlap=20) -> list:
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    return text_splitter.split_documents(data)
+    data = text_splitter.split_documents(data)
+    return data
 
 
 def calculate_embedding_cost(chunks: list):
@@ -42,14 +43,16 @@ def calculate_embedding_cost(chunks: list):
 
 def create_embeddings(chunks: list):
     embeddings = OpenAIEmbeddings()
-    return Chroma.from_documents(chunks, embeddings)
+    vector_store = Chroma.from_documents(chunks, embeddings)
+    return vector_store
 
 
 def ask_and_get_answer(vector_store, question: str, k=3):
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=1)
     retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
     chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
-    return chain.run(question)
+    answer = chain.run(question)
+    return answer
 
 
 if __name__ == "__main__":
@@ -80,3 +83,11 @@ if __name__ == "__main__":
                 vector_store = create_embeddings(chunks)
                 st.session_state.vs = vector_store
                 st.success("File Uploaded, chunked and embedded successfully.")
+
+    q = st.text_input("Ask a question about the content of your file")
+    if q:
+        if "vs" in st.session_state:
+            vector_store = st.session_state.vs
+            st.write(f"k: {k}")
+            answer = ask_and_get_answer(vector_store, q, k)
+            st.text_area("LLM Answer:", value=answer)
