@@ -55,6 +55,11 @@ def ask_and_get_answer(vector_store, question: str, k=3):
     return answer
 
 
+def clear_history():
+    if "history" in st.session_state:
+        del st.session_state["history"]
+
+
 if __name__ == "__main__":
     st.image("./assets/img.png")
     st.subheader("LLM Question-Answering Application 🤖")
@@ -64,9 +69,9 @@ if __name__ == "__main__":
             os.environ["OPENAI_API_KEY"] = api_key
 
         uploaded_file = st.file_uploader("Upload a file:", type=["pdf", "docx", "txt"])
-        chunk_size = st.number_input("Chunk size:", min_value=100, max_value=2048, value=512)
-        k = st.number_input("k", min_value=1, max_value=20, value=3)
-        add_data = st.button("Add Data")
+        chunk_size = st.number_input("Chunk size:", min_value=100, max_value=2048, value=512, on_change=clear_history)
+        k = st.number_input("k", min_value=1, max_value=20, value=3, on_change=clear_history)
+        add_data = st.button("Add Data", on_click=clear_history)
 
         if uploaded_file and add_data:
             with st.spinner("Reading, chunking and embedding file ..."):
@@ -85,9 +90,17 @@ if __name__ == "__main__":
                 st.success("File Uploaded, chunked and embedded successfully.")
 
     q = st.text_input("Ask a question about the content of your file")
+    answer = ""
     if q:
         if "vs" in st.session_state:
             vector_store = st.session_state.vs
             st.write(f"k: {k}")
             answer = ask_and_get_answer(vector_store, q, k)
             st.text_area("LLM Answer:", value=answer)
+            st.divider()
+            if "history" not in st.session_state:
+                st.session_state.history = ""
+            value = f"Q: {q}\n A: {answer}"
+            st.session_state.history = f'{value} \n {"-"*100} \n {st.session_state.history}'
+            h = st.session_state.history
+            st.text_area("Chat History", value=h, key="history", height=400)
