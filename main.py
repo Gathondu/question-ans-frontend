@@ -94,7 +94,6 @@ if __name__ == "__main__":
     if q:
         if "vs" in st.session_state:
             vector_store = st.session_state.vs
-            st.write(f"k: {k}")
             answer = ask_and_get_answer(vector_store, q, k)
             st.text_area("LLM Answer:", value=answer)
             st.divider()
